@@ -1,0 +1,500 @@
+!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Boutique Montres</title>
+  <style>
+    /* --- Reset & Basic --- */
+    :root{
+      --accent:#0b66c3;
+      --card:#fff;
+      --muted:#666;
+      --bg:#f4f6f8;
+      --maxw:1100px;
+    }
+    *{box-sizing:border-box}
+    body{font-family:Inter, system-ui, Arial, sans-serif; margin:0; background:var(--bg); color:#111;}
+    .container{max-width:var(--maxw); margin:28px auto; padding:18px;}
+    header{display:flex;align-items:center;justify-content:space-between; gap:12px;}
+    header h1{margin:0;font-size:1.4rem;}
+    .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; margin-top:18px;}
+    .card{background:var(--card); border-radius:10px; padding:12px; box-shadow:0 6px 18px rgba(12,20,30,0.06); display:flex; flex-direction:column;}
+    .card img{width:100%; height:240px; object-fit:cover; border-radius:8px;}
+    .meta{padding:8px 4px; flex:1}
+    .title{font-weight:600; margin:6px 0;}
+    .desc{font-size:0.93rem; color:var(--muted); min-height:56px;}
+    .price{font-weight:700; font-size:1.05rem; margin-top:8px;}
+    .actions{display:flex; gap:8px; margin-top:10px;}
+    button{cursor:pointer; border:0; padding:10px 12px; border-radius:8px; background:var(--accent); color:#fff;}
+    .btn-outline{background:transparent; border:1px solid rgba(0,0,0,0.08); color:var(--accent);}
+    .cart-btn{position:fixed; right:18px; bottom:18px; background:var(--accent); border-radius:50%; width:56px; height:56px; display:flex; align-items:center; justify-content:center; box-shadow:0 10px 26px rgba(11,102,195,0.18); color:#fff; font-weight:700;}
+    .cart-count{position:absolute; right:-6px; top:-6px; background:#ff4d4f; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem;}
+    footer{margin-top:30px; color:var(--muted); font-size:0.9rem;}
+    /* Modal / Checkout */
+    .modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,0.45); display:none; align-items:center; justify-content:center; padding:12px;}
+    .modal{background:#fff; width:100%; max-width:720px; border-radius:10px; padding:18px; box-shadow:0 14px 40px rgba(2,6,23,0.3); max-height:90vh; overflow:auto;}
+    .row{display:flex; gap:10px; flex-wrap:wrap;}
+    label{display:block; font-size:0.9rem; margin-bottom:6px;}
+    input, select, textarea{width:100%; padding:10px; border-radius:8px; border:1px solid #e3e7eb; font-size:0.95rem;}
+    .small{width:48%}
+    .order-summary{background:#fafbfc; padding:12px; border-radius:8px;}
+    .admin-panel{margin-top:12px; padding:12px; background:#fff; border-radius:8px; box-shadow:0 6px 18px rgba(12,20,30,0.04);}
+    a.paylink{display:inline-block; margin-top:8px; text-decoration:none; color:var(--accent); font-weight:600;}
+    .note{font-size:0.9rem; color:var(--muted); margin-top:8px;}
+    @media (max-width:520px){
+      .small{width:100%}
+      .card img{height:200px}
+    }
+  </style>
+</head>
+<body>
+  <!--
+    Fichier: montres.html
+    Instructions rapides:
+      - Sauvegarde ce fichier en "montres.html" et ouvre-le dans un navigateur.
+      - Pour recevoir automatiquement les commandes par e-mail sans ouvrir le client mail de l'acheteur,
+        configure un service comme Formspree ou EmailJS et remplace la section TODO indiquée plus bas.
+      - Pour tracker les visiteurs (clics), ajoute ton Google Analytics Measurement ID dans GA_MEASUREMENT_ID ci-dessous.
+  -->
+  <div class="container">
+    <header>
+      <div>
+        <h1>Boutique Montres — Collection Homme</h1>
+        <div class="note">Paiement via WhatsApp (<strong>0661516369</strong>) ou PayPal (<strong>saadelhaoul0@gmail.com</strong>).</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-weight:700">Contact / Paiement</div>
+        <div style="color:var(--muted)">WhatsApp : <a href="https://wa.me/212661516369" target="_blank">+212 661 516 369</a></div>
+        <div style="color:var(--muted)">PayPal : <span style="font-weight:600">saadelhaoul0@gmail.com</span></div>
+      </div>
+    </header>
+
+    <main>
+      <section class="grid" id="products">
+        <!-- Product cards inserted by JS -->
+      </section>
+    </main>
+
+    <footer>
+      <small>Site demo — intégré par script. Tu peux héberger ce fichier sur n’importe quel hébergeur statique (Netlify, GitHub Pages, Vercel) pour disponibilité publique.</small>
+    </footer>
+  </div>
+
+  <!-- Cart button -->
+  <button class="cart-btn" id="openCartBtn" title="Voir le panier">🛒 <span class="cart-count" id="cartCount">0</span></button>
+
+  <!-- Modal Checkout -->
+  <div class="modal-backdrop" id="modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="checkoutTitle">
+      <h2 id="checkoutTitle">Finaliser la commande</h2>
+      <div style="display:flex; gap:12px; align-items:center; justify-content:space-between;">
+        <div style="font-weight:700">Récapitulatif</div>
+        <button class="btn-outline" id="closeModal">Fermer</button>
+      </div>
+
+      <div style="margin-top:12px; display:grid; grid-template-columns:1fr 320px; gap:12px;">
+        <div>
+          <form id="orderForm">
+            <label>Nom complet <span style="color:#d00">*</span>
+              <input type="text" id="custName" required />
+            </label>
+            <label>Email <span style="color:#d00">*</span>
+              <input type="email" id="custEmail" required />
+            </label>
+            <div class="row">
+              <div class="small">
+                <label>Téléphone <span style="color:#d00">*</span>
+                  <input type="tel" id="custPhone" required />
+                </label>
+              </div>
+              <div class="small">
+                <label>Ville
+                  <input type="text" id="custCity" />
+                </label>
+              </div>
+            </div>
+            <label>Adresse
+              <textarea id="custAddress" rows="3" placeholder="Rue, Code postal, Pays"></textarea>
+            </label>
+
+            <label>Remarques (optionnel)
+              <textarea id="custNotes" rows="2" placeholder="Ex: taille du bracelet, couleur préférée..."></textarea>
+            </label>
+
+            <div style="margin-top:12px;">
+              <button type="submit">Valider et envoyer la commande</button>
+              <button type="button" class="btn-outline" id="exportCSV" style="margin-left:8px">Exporter commandes (CSV)</button>
+            </div>
+          </form>
+
+          <div class="note">
+            Après validation, l'acheteur aura 2 options : <strong>payer via WhatsApp</strong> (message pré-rempli) ou <strong>payer via PayPal</strong> (envoyer au compte saadelhaoul0@gmail.com).
+          </div>
+        </div>
+
+        <div>
+          <div class="order-summary">
+            <strong>Panier</strong>
+            <div id="cartItems" style="margin-top:8px;"></div>
+            <div style="margin-top:10px; font-weight:700">Total: <span id="cartTotal">0,00€</span></div>
+          </div>
+
+          <div style="margin-top:10px;">
+            <div style="font-weight:700">Paiement</div>
+            <div class="note">WhatsApp paiement direct et notification. PayPal: envoyer le paiement à <strong>saadelhaoul0@gmail.com</strong>.</div>
+            <a id="whatsappPay" class="paylink" target="_blank" rel="noopener">Payer via WhatsApp</a><br/>
+            <a id="paypalPay" class="paylink" target="_blank" rel="noopener">Payer via PayPal (envoyer à saadelhaoul0@gmail.com)</a>
+          </div>
+        </div>
+      </div>
+
+      <hr style="margin:14px 0" />
+      <div class="admin-panel">
+        <strong>Admin — Statistiques locales</strong>
+        <div style="margin-top:8px; color:var(--muted)">
+          Ce panneau conserve localement (dans ton navigateur) les clics sur les produits et les commandes passées.
+          Pour notifications automatiques par e-mail sans ouvrir le client mail, configure Formspree / EmailJS (voir TODO dans le code).
+        </div>
+        <div style="margin-top:8px;">
+          <div><strong>Clics par produit</strong></div>
+          <pre id="clickStats" style="background:#fafbfc; padding:8px; border-radius:6px; max-height:120px; overflow:auto;"></pre>
+          <div style="margin-top:8px;"><strong>Commandes enregistrées (local)</strong></div>
+          <pre id="ordersList" style="background:#fafbfc; padding:8px; border-radius:6px; max-height:160px; overflow:auto;"></pre>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /*********
+     * Données produits (édition facile)
+     *********/
+    const PRODUCTS = [
+      {
+        id: "p1",
+        title: "Montre étanche de luxe pour hommes",
+        img: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgTJ8RB-cZ3ru-XBB4U20qPPDfWlK7H-ysHeOXtWjHVaJSXXVV-2xa6ykdhCVqyoLTM5Hl9ktdvZN-JRb3RWX_2jtTWxvYxaMWGPHVT5lNlfrLZ1MD-M1UoU0BLICOKtkQMGJG8_nPhyphenhyphenMfHmskq6z0WZ4A1uisRiQb7pC_pyQFUZ7mj8uoaf7t9w7w5FPQ/s320/y.jpeg",
+        desc: "Montre étanche de luxe pour hommes, Date, calendrier, montre à Quartz, mode Business",
+        price: 23.99
+      },
+      {
+        id: "p2",
+        title: "Ensemble 5 pièces DEYROS",
+        img: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiEVyV5XkWQfgrpPXyPcvMX5C19cauXCPloKHh86aRxvQk6vWMidLOifr-BKhhuVRc3e2b4BK6vFiBxH-rd361QAiYXFGT1OGcvSyu9z4xKoju-nFma3-uOWrKEt-YQOny6FhxBeR7g9Uk60By-md66RPTJL4dizGRbO8NGTaNRLETdPiIhB7zUDzRRtbM/s320/WhatsApp%20Image%202025-10-25%20at%2022.01.02.jpeg",
+        desc: "5 pièces ensemble DEYROS mode hommes calendrier montres hommes d'affaires en acier inoxydable Quartz montre-Bracelet mâle décontracté collier Bracelet montre",
+        price: 23.99
+      },
+      {
+        id: "p3",
+        title: "Montre d'affaires carrée (sans boîte)",
+        img: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgDcpFu_-6gwjWLKjyX5cA87ATGmAbJjTUgzhghL76FCLI4gxvdNFbFRyv3xFSWXczL_PgBadHznOpupaHxts04wyNYMpuynGygWBpO3XBdUOqvdNdZUBacetM8cISwmY2kg4z03AvQKprJ_qxeWOJnMOJj5AWu9ga8AzBW-pZZuqSkZylcTIGYa1VibMo/s320/WhatsApp%20Image%202025-10-25%20at%2022.01.02%20(2).jpeg",
+        desc: "Montres d'affaires carrées pour hommes, montre de luxe à Quartz avec bracelet en acier inoxydable et calendrier pour hommes (sans boîte)",
+        price: 27.99
+      },
+      {
+        id: "p4",
+        title: "UTHAI montre pour hommes",
+        img: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhpV7eHMe5CYKxBRMYjoy9z-So_35g3Prrd1lZGaJi4AG1eDr9mFnr91DuSQA9QzbqyA20u8ePgxkOFX6zmXZBF8T_jo6SInA0XST8SmpbctLdGA0q_jhIvUrFNgk1nNDwwVXwUqarCe2blIi8rI6E16Ys3s5BQvgO3tyrzcVqB8okz-JdAwvmu0KJSQUc/s320/WhatsApp%20Image%202025-10-25%20at%2022.01.02%20(1).jpeg",
+        desc: "UTHAI montre pour hommes à la mode haut de gamme lumière luxe polyvalent montres à Quartz étanche romain creux mâle horloge montre",
+        price: 26.99
+      },
+      {
+        id: "p5",
+        title: "Montre sport 2025 — design moderne",
+        img: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEixwo1r-MjEovibu96dNE5UOUqC8pkLIPcWyp9LeLF-Vfi42G_zvK4SD7MuPUCe81yMnjkr0BeYONAd7KZ2LcfCXleZudhdFSjhqBEF8UAu3U1rEnBSp1QZzA9_CbElsJQjvQLHwjEUdeYzdwNdQ8AUaa-fatVJCONq_pxeNAlIVeIW1AXSdK-OZVKhLZQ/s320/143652c7-65ff-4954-8044-392d0491a2ad.jpeg",
+        desc: "2025 nouvelle montre de sport créative Simple moderne Design décontracté affaires montres à Quartz étanches cadeau pour hommes Reloj Hombre",
+        price: 25.99
+      }
+    ];
+
+    /*********
+     * Variables de configuration
+     *********/
+    const OWNER_EMAIL = "saadelhaoul0@gmail.com";
+    const WHATSAPP_NUMBER_INTL = "212661516369"; // sans +, pour wa.me
+    // TODO: If you want automatic email sending without mailto, configure Formspree or EmailJS and
+    // replace sendOrderViaFormspree(...) implementation below with your endpoint and keys.
+
+    // Optional: Google Analytics measurement ID for tracking (ex: G-XXXXXXXXX)
+    const GA_MEASUREMENT_ID = ""; // TODO: replace to enable gtag tracking
+
+    /*********
+     * Initial rendering
+     *********/
+    const productsEl = document.getElementById("products");
+    const cartCountEl = document.getElementById("cartCount");
+    const cartItemsEl = document.getElementById("cartItems");
+    const cartTotalEl = document.getElementById("cartTotal");
+    const modal = document.getElementById("modal");
+    const openCartBtn = document.getElementById("openCartBtn");
+    const closeModalBtn = document.getElementById("closeModal");
+    const orderForm = document.getElementById("orderForm");
+    const whatsappPayLink = document.getElementById("whatsappPay");
+    const paypalPayLink = document.getElementById("paypalPay");
+    const clickStatsEl = document.getElementById("clickStats");
+    const ordersListEl = document.getElementById("ordersList");
+    const exportCSVBtn = document.getElementById("exportCSV");
+
+    // localStorage keys
+    const LS_CART = "boutique_cart_v1";
+    const LS_CLICKS = "boutique_clicks_v1";
+    const LS_ORDERS = "boutique_orders_v1";
+
+    // init
+    function renderProducts(){
+      PRODUCTS.forEach(p => {
+        const div = document.createElement("div");
+        div.className = "card";
+        div.innerHTML = `
+          <img src="${p.img}" alt="${escapeHtml(p.title)}" loading="lazy" />
+          <div class="meta">
+            <div class="title">${escapeHtml(p.title)}</div>
+            <div class="desc">${escapeHtml(p.desc)}</div>
+            <div class="price">${p.price.toFixed(2)}€</div>
+            <div class="actions">
+              <button data-add="${p.id}">Ajouter au panier</button>
+              <button class="btn-outline" data-view="${p.id}">Voir</button>
+            </div>
+          </div>
+        `;
+        productsEl.appendChild(div);
+      });
+    }
+
+    // safe escape
+    function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]); }
+
+    // cart operations
+    let cart = loadJSON(LS_CART, {});
+    function saveCart(){ localStorage.setItem(LS_CART, JSON.stringify(cart)); updateCartUI(); }
+    function addToCart(id, qty = 1){
+      if(!cart[id]) cart[id]=0;
+      cart[id]+=qty;
+      saveCart();
+    }
+    function removeFromCart(id){
+      delete cart[id]; saveCart();
+    }
+    function clearCart(){ cart={}; saveCart(); }
+
+    function updateCartUI(){
+      const entries = Object.entries(cart);
+      cartCountEl.textContent = entries.reduce((s,[id,q])=>s+q,0);
+      cartItemsEl.innerHTML = "";
+      let total = 0;
+      if(entries.length===0){
+        cartItemsEl.innerHTML = "<em>Votre panier est vide.</em>";
+      } else {
+        entries.forEach(([id,q])=>{
+          const p = PRODUCTS.find(pp => pp.id===id);
+          if(!p) return;
+          const row = document.createElement("div");
+          row.style.marginBottom="8px";
+          row.innerHTML = `<div style="display:flex; justify-content:space-between; gap:8px;">
+            <div>${escapeHtml(p.title)} × ${q}</div>
+            <div>${(p.price * q).toFixed(2)}€</div>
+          </div>`;
+          cartItemsEl.appendChild(row);
+          total += p.price * q;
+        });
+      }
+      cartTotalEl.textContent = total.toFixed(2) + "€";
+      // update pay links (whatsapp message with summary)
+      const simpleMsg = encodeURIComponent(Bonjour, je veux commander depuis la boutique. Total: ${total.toFixed(2)}€);
+      whatsappPayLink.href = https://wa.me/${WHATSAPP_NUMBER_INTL}?text=${simpleMsg};
+      // Use OWNER_EMAIL as default PayPal receiver (replace with your PayPal.Me if available)
+      paypalPayLink.href = https://www.paypal.com/send?to=${encodeURIComponent(OWNER_EMAIL)};
+    }
+
+    // clicks & orders tracking (local)
+    function incClick(productId){
+      const clicks = loadJSON(LS_CLICKS, {});
+      clicks[productId] = (clicks[productId]||0) + 1;
+      localStorage.setItem(LS_CLICKS, JSON.stringify(clicks));
+      renderStats();
+    }
+    function pushOrder(order){
+      const orders = loadJSON(LS_ORDERS, []);
+      orders.unshift(order);
+      localStorage.setItem(LS_ORDERS, JSON.stringify(orders));
+      renderStats();
+    }
+    function renderStats(){
+      const clicks = loadJSON(LS_CLICKS, {});
+      const orders = loadJSON(LS_ORDERS, []);
+      clickStatsEl.textContent = JSON.stringify(clicks, null, 2);
+      ordersListEl.textContent = orders.map(o => ${o.date} — ${o.name} — ${o.items.map(i=>i.title+"×"+i.qty).join(", ")} — ${o.total.toFixed(2)}€).join("\n\n");
+    }
+
+    // helpers
+    function loadJSON(k, fallback){
+      try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; } catch(e){ return fallback; }
+    }
+
+    // build page
+    renderProducts();
+    updateCartUI();
+    renderStats();
+
+    // event delegation: add to cart / view
+    productsEl.addEventListener("click", (e)=>{
+      const add = e.target.closest("[data-add]");
+      const view = e.target.closest("[data-view]");
+      if(add){
+        const id = add.getAttribute("data-add");
+        addToCart(id,1);
+        // small feedback
+        alert("Ajouté au panier.");
+      } else if(view){
+        const id = view.getAttribute("data-view");
+        const p = PRODUCTS.find(pp => pp.id===id);
+        incClick(id);
+        // show quick detail
+        alert(p.title + "\n\n" + p.desc + "\n\nPrix: " + p.price.toFixed(2) + "€");
+      }
+    });
+
+    // open modal (show) and also refresh links each time
+    openCartBtn.addEventListener("click", ()=> {
+      modal.style.display = "flex";
+      updateCartUI();
+      renderStats();
+      // update whatsapp link with current total (generic)
+      const total = Object.entries(cart).reduce((s,[id,q]) => {
+        const p = PRODUCTS.find(pp=>pp.id===id); return s + (p? p.price*q:0);
+      }, 0);
+      const msg = encodeURIComponent(Bonjour, je souhaite commander depuis la boutique (total: ${total.toFixed(2)}€).);
+      whatsappPayLink.href = https://wa.me/${WHATSAPP_NUMBER_INTL}?text=${msg};
+      // use OWNER_EMAIL by default (replace with a PayPal.Me link if you have one)
+      paypalPayLink.href = https://www.paypal.com/send?to=${encodeURIComponent(OWNER_EMAIL)};
+    });
+
+    closeModalBtn.addEventListener("click", ()=> { modal.style.display = "none"; });
+
+    // Form submit -> create order
+    orderForm.addEventListener("submit", (ev)=>{
+      ev.preventDefault();
+      const name = document.getElementById("custName").value.trim();
+      const email = document.getElementById("custEmail").value.trim();
+      const phone = document.getElementById("custPhone").value.trim();
+      const city = document.getElementById("custCity").value.trim();
+      const addr = document.getElementById("custAddress").value.trim();
+      const notes = document.getElementById("custNotes").value.trim();
+
+      const items = Object.entries(cart).map(([id,q])=>{
+        const p = PRODUCTS.find(pp => pp.id===id);
+        return { id, title: p.title, price: p.price, qty: q };
+      });
+      if(items.length===0){
+        alert("Votre panier est vide. Ajoutez au moins un produit.");
+        return;
+      }
+      const total = items.reduce((s,it)=> s + it.price * it.qty, 0);
+
+      const order = {
+        id: "ORD-" + Date.now(),
+        date: (new Date()).toLocaleString(),
+        name, email, phone, city, addr, notes,
+        items, total
+      };
+
+      // store locally for admin view
+      pushOrder(order);
+
+      // 1) Trigger mailto: to owner (will open the client's mail app).
+      const subject = encodeURIComponent(Nouvelle commande ${order.id} - ${name});
+      let body = Nouvelle commande:\n\nID: ${order.id}\nDate: ${order.date}\nClient: ${name}\nEmail: ${email}\nTéléphone: ${phone}\nVille: ${city}\nAdresse: ${addr}\nNotes: ${notes}\n\nProduits:\n;
+      order.items.forEach(it => {
+        body += ` - ${it.title} × ${it.qty} — ${it.price.toFixed(2)}€\n`;
+      });
+      body += \nTotal: ${order.total.toFixed(2)}€\n\nPayer via WhatsApp: https://wa.me/${WHATSAPP_NUMBER_INTL}?text=${encodeURIComponent("Commande "+order.id+" pour "+name+" — total: "+order.total.toFixed(2)+"€")};
+      const mailto = mailto:${OWNER_EMAIL}?subject=${subject}&body=${encodeURIComponent(body)};
+      window.location.href = mailto;
+
+      // 2) OPTIONAL: send order to a server/form endpoint (Formspree/EmailJS). See TODO below.
+      // sendOrderViaFormspree(order);
+
+      // 3) after form submission, clear cart for this browser session (optional)
+      clearCart();
+      updateCartUI();
+      alert("Commande enregistrée localement. Un e-mail pré-rempli s'est ouvert pour vous permettre d'envoyer la commande (ou configurez Formspree/EmailJS pour l'automatiser).");
+    });
+
+    // export orders CSV (downloads local orders)
+    exportCSVBtn.addEventListener("click", ()=>{
+      const orders = loadJSON(LS_ORDERS, []);
+      if(orders.length===0){ alert("Aucune commande à exporter."); return; }
+      const rows = [];
+      rows.push(["id","date","name","email","phone","city","address","notes","items","total"]);
+      orders.forEach(o=>{
+        rows.push([o.id,o.date,o.name,o.email,o.phone,o.city,o.addr, o.notes, o.items.map(i=>i.title+"×"+i.qty).join(" | "), o.total.toFixed(2)]);
+      });
+      const csvContent = rows.map(r => r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(",")).join("\n");
+      const blob = new Blob([csvContent], {type:"text/csv;charset=utf-8;"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "commandes_boutique.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    // small helper to close modal when clicking backdrop
+    modal.addEventListener("click", (e)=>{ if(e.target === modal) modal.style.display="none"; });
+
+    // Google Analytics (optional)
+    if(GA_MEASUREMENT_ID){
+      // load gtag
+      (function(){
+        const s = document.createElement('script');
+        s.src = https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID};
+        s.async = true;
+        document.head.appendChild(s);
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        window.gtag = gtag;
+        gtag('js', new Date());
+        gtag('config', GA_MEASUREMENT_ID);
+      })();
+    }
+
+    // sendOrderViaFormspree(order) - placeholder to integrate a serverless form endpoint
+    async function sendOrderViaFormspree(order){
+      // TODO: Replace with your Formspree endpoint or EmailJS/Axios POST.
+      // Example Formspree (after creating a form) endpoint:
+      // const endpoint = "https://formspree.io/f/YOUR_FORM_ID";
+      // await fetch(endpoint, {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({
+      //     subject: Nouvelle commande ${order.id},
+      //     ...order
+      //   })
+      // });
+      console.log("sendOrderViaFormspree() called - configure your endpoint.");
+    }
+
+    // Accessibility / finishing
+    document.addEventListener("keydown", (e)=>{ if(e.key==="Escape") modal.style.display = "none"; });
+
+    // Init: detect clicks on product images (for tracking)
+    // Use event delegation so it works for dynamically created cards
+    productsEl.addEventListener("click", (ev)=>{
+      const img = ev.target.closest(".card img");
+      if(img){
+        const parent = img.closest(".card");
+        const viewBtn = parent.querySelector("[data-view]");
+        if(viewBtn) viewBtn.click();
+      }
+    });
+
+    // ensure cart UI correct on load
+    updateCartUI();
+
+  </script>
+</body>
+</html>
